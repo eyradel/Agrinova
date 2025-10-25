@@ -49,8 +49,8 @@ COPY next_purchase_stack_model.pkl .
 # Verify model files are copied correctly
 RUN ls -la *.pkl && \
     echo "Model files copied successfully" && \
-    file churn_model.pkl && \
-    file next_purchase_stack_model.pkl
+    echo "churn_model.pkl size: $(wc -c < churn_model.pkl) bytes" && \
+    echo "next_purchase_stack_model.pkl size: $(wc -c < next_purchase_stack_model.pkl) bytes"
 
 # Verify model files and dependencies
 RUN python -c "import joblib; print('Testing model loading...'); \
