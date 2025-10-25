@@ -44,7 +44,7 @@ COPY --from=builder /opt/venv /opt/venv
 # Create app directory
 WORKDIR /app
 
-# Copy only essential files first
+# Copy application files
 COPY main.py .
 COPY requirements.txt .
 
@@ -53,10 +53,12 @@ COPY churn_model.pkl .
 COPY next_purchase_stack_model.pkl .
 
 # Verify model files are copied correctly
-RUN ls -la *.pkl && \
+RUN echo "=== Verifying model files ===" && \
+    ls -la *.pkl && \
     echo "Model files copied successfully" && \
     echo "churn_model.pkl size: $(wc -c < churn_model.pkl) bytes" && \
-    echo "next_purchase_stack_model.pkl size: $(wc -c < next_purchase_stack_model.pkl) bytes"
+    echo "next_purchase_stack_model.pkl size: $(wc -c < next_purchase_stack_model.pkl) bytes" && \
+    echo "=== Model file verification complete ==="
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash --uid 1000 app
@@ -65,7 +67,9 @@ RUN useradd --create-home --shell /bin/bash --uid 1000 app
 RUN chown -R app:app /app
 
 # Verify model files and dependencies as app user
-RUN python -c "import joblib; print('Testing model loading...'); \
+RUN echo "=== Final model verification as app user ===" && \
+    ls -la *.pkl && \
+    python -c "import joblib; print('Testing model loading...'); \
     print('Loading regression model...'); \
     reg_model = joblib.load('next_purchase_stack_model.pkl'); \
     print('Regression model loaded:', type(reg_model)); \
