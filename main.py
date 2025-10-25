@@ -15,11 +15,18 @@ app = FastAPI(
 
 # Load models and encoders
 try:
+    print("Loading regression model...")
     reg_model = joblib.load('next_purchase_stack_model.pkl')
+    print(f"✅ Regression model loaded: {type(reg_model)}")
+    
+    print("Loading classification model...")
     clf_model = joblib.load('churn_model.pkl')
-    print("Models loaded successfully!")
+    print(f"✅ Classification model loaded: {type(clf_model)}")
+    
+    print("🎉 All models loaded successfully!")
 except Exception as e:
-    print(f"Error loading models: {e}")
+    print(f"❌ Error loading models: {e}")
+    print("💡 Make sure you have installed all dependencies: pip install -r requirements.txt")
     reg_model = None
     clf_model = None
 
@@ -73,7 +80,10 @@ def predict_customer_behavior(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with predictions added
     """
     if reg_model is None or clf_model is None:
-        raise HTTPException(status_code=500, detail="Models not loaded properly")
+        raise HTTPException(
+            status_code=500, 
+            detail="Models not loaded properly. Please check server logs and ensure all dependencies are installed."
+        )
     
     # Create a copy to avoid modifying original data
     df = df.copy()
