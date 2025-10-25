@@ -19,35 +19,35 @@ def load_models():
     global reg_model, clf_model
     
     try:
-        print("🔍 Checking model files...")
+        print("Checking model files...")
         import os
         if not os.path.exists('next_purchase_stack_model.pkl'):
             raise FileNotFoundError("next_purchase_stack_model.pkl not found")
         if not os.path.exists('churn_model.pkl'):
             raise FileNotFoundError("churn_model.pkl not found")
-        print("✅ Model files found")
+        print("Model files found")
         
-        print("📦 Checking dependencies...")
+        print("Checking dependencies...")
         try:
             import joblib
             import pandas as pd
             import numpy as np
             import xgboost
             from sklearn.preprocessing import LabelEncoder
-            print("✅ All dependencies available")
+            print("All dependencies available")
         except ImportError as e:
             raise ImportError(f"Missing dependency: {e}")
         
-        print("🔄 Loading regression model...")
+        print("Loading regression model...")
         reg_model = joblib.load('next_purchase_stack_model.pkl')
-        print(f"✅ Regression model loaded: {type(reg_model)}")
+        print(f"Regression model loaded: {type(reg_model)}")
         
-        print("🔄 Loading classification model...")
+        print("Loading classification model...")
         clf_model = joblib.load('churn_model.pkl')
-        print(f"✅ Classification model loaded: {type(clf_model)}")
+        print(f"Classification model loaded: {type(clf_model)}")
         
         # Test model functionality
-        print("🧪 Testing model functionality...")
+        print("Testing model functionality...")
         test_data = pd.DataFrame({
             'Frequency': [1], 'Monetary': [100.0], 'Avg_Order_Value': [100.0], 
             'Total_Items_Sold': [1], 'Customer_Type': ['new'], 'Attribution': ['Direct']
@@ -59,20 +59,20 @@ def load_models():
         
         # Test regression model
         reg_pred = reg_model.predict(test_data[['Frequency', 'Monetary', 'Avg_Order_Value', 'Total_Items_Sold', 'Customer_Type', 'Attribution']])
-        print(f"✅ Regression model test prediction: {reg_pred[0]}")
+        print(f"Regression model test prediction: {reg_pred[0]}")
         
         # Test classification model
         clf_pred = clf_model.predict_proba(test_clf_data)[:, 1]
-        print(f"✅ Classification model test prediction: {clf_pred[0]}")
+        print(f"Classification model test prediction: {clf_pred[0]}")
         
-        print("🎉 All models loaded and tested successfully!")
+        print("All models loaded and tested successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Error loading models: {e}")
-        print(f"❌ Error type: {type(e).__name__}")
-        print("💡 Make sure you have installed all dependencies: pip install -r requirements.txt")
-        print("💡 Check that model files are present in the container")
+        print(f"Error loading models: {e}")
+        print(f"Error type: {type(e).__name__}")
+        print("Make sure you have installed all dependencies: pip install -r requirements.txt")
+        print("Check that model files are present in the container")
         reg_model = None
         clf_model = None
         return False
