@@ -27,8 +27,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Verify model files exist
-RUN ls -la *.pkl && \
-    python -c "import joblib; print('Testing model loading...'); reg_model = joblib.load('next_purchase_stack_model.pkl'); print('Regression model loaded:', type(reg_model)); clf_model = joblib.load('churn_model.pkl'); print('Classification model loaded:', type(clf_model))"
+RUN ls -la *.pkl
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app && \

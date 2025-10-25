@@ -33,6 +33,7 @@ def load_models():
             import pandas as pd
             import numpy as np
             import xgboost
+            import lightgbm
             from sklearn.preprocessing import LabelEncoder
             print("All dependencies available")
         except ImportError as e:
@@ -197,6 +198,12 @@ async def health_check():
         dependencies["sklearn"] = True
     except ImportError:
         dependencies["sklearn"] = False
+    
+    try:
+        import lightgbm
+        dependencies["lightgbm"] = True
+    except ImportError:
+        dependencies["lightgbm"] = False
     
     return {
         "status": "healthy" if models_loaded else "unhealthy",
