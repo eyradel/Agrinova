@@ -1,4 +1,4 @@
-# Python
+# Python cache and build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -26,31 +26,61 @@ venv/
 ENV/
 env/
 
-# IDE
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Git
 .git/
 .gitignore
 
-# Documentation
+# Documentation (not needed in container)
 README.md
+FRONTEND_API_GUIDE.md
 *.md
 
-# Test files
+# Test and debug files
 test_*.py
 *_test.py
+test_debug.py
+
+# Data files (not needed for API)
+RFM_with_Target.csv
+
+# Lock files (dependencies are in requirements.txt)
+uv.lock
+
+# Project configuration (not needed in container)
+pyproject.toml
 
 # Logs
 *.log
+logs/
 
 # Temporary files
 *.tmp
 *.temp
+*.bak
+
+# Docker files (not needed in container)
+Dockerfile
+.dockerignore
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
