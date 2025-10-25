@@ -1,6 +1,7 @@
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Literal
 import numpy as np
@@ -11,6 +12,15 @@ app = FastAPI(
     title="AgriNova Customer Behavior Prediction API",
     description="API for predicting customer churn probability and next purchase days",
     version="1.0.0"
+)
+
+# Add CORS middleware - allow all origins for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Load models and encoders
@@ -28,31 +38,31 @@ try:
     if os.path.exists('next_purchase_stack_model.pkl'):
         print(f"Model file size: {os.path.getsize('next_purchase_stack_model.pkl')} bytes")
         reg_model = joblib.load('next_purchase_stack_model.pkl')
-        print(f"✅ Regression model loaded: {type(reg_model)}")
+        print(f"Regression model loaded: {type(reg_model)}")
     else:
-        print("❌ next_purchase_stack_model.pkl not found!")
+        print("next_purchase_stack_model.pkl not found!")
         reg_model = None
     
     print("Loading classification model...")
     if os.path.exists('churn_model.pkl'):
         print(f"Model file size: {os.path.getsize('churn_model.pkl')} bytes")
         clf_model = joblib.load('churn_model.pkl')
-        print(f"✅ Classification model loaded: {type(clf_model)}")
+        print(f"Classification model loaded: {type(clf_model)}")
     else:
-        print("❌ churn_model.pkl not found!")
+        print("churn_model.pkl not found!")
         clf_model = None
     
     if reg_model and clf_model:
-        print("🎉 All models loaded successfully!")
+        print("All models loaded successfully!")
     else:
-        print("❌ Some models failed to load!")
+        print("Some models failed to load!")
         
 except Exception as e:
-    print(f"❌ Error loading models: {e}")
-    print(f"❌ Error type: {type(e)}")
+    print(f"Error loading models: {e}")
+    print(f"Error type: {type(e)}")
     import traceback
-    print(f"❌ Full traceback: {traceback.format_exc()}")
-    print("💡 Make sure you have installed all dependencies: pip install -r requirements.txt")
+    print(f"Full traceback: {traceback.format_exc()}")
+    print("Make sure you have installed all dependencies: pip install -r requirements.txt")
     reg_model = None
     clf_model = None
 
@@ -116,9 +126,9 @@ def predict_customer_behavior(df: pd.DataFrame) -> pd.DataFrame:
             # Update global variables
             globals()['reg_model'] = new_reg_model
             globals()['clf_model'] = new_clf_model
-            print("✅ Models reloaded successfully!")
+            print("Models reloaded successfully!")
         except Exception as e:
-            print(f"❌ Failed to reload models: {e}")
+            print(f"Failed to reload models: {e}")
             raise HTTPException(
                 status_code=500, 
                 detail=f"Models not loaded properly. Error: {str(e)}. Please check server logs and ensure all dependencies are installed."
