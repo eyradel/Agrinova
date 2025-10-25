@@ -14,113 +14,21 @@ app = FastAPI(
 )
 
 # Load models and encoders
-def load_models():
-    """Load and validate models with detailed error reporting"""
-    global reg_model, clf_model
+try:
+    print("Loading regression model...")
+    reg_model = joblib.load('next_purchase_stack_model.pkl')
+    print(f"✅ Regression model loaded: {type(reg_model)}")
     
-    try:
-        print("=== MODEL LOADING DEBUG ===")
-        print("Checking model files...")
-        import os
-        
-        # Check current directory
-        print(f"Current working directory: {os.getcwd()}")
-        print(f"Files in directory: {os.listdir('.')}")
-        
-        # Use absolute paths for better reliability
-        reg_model_path = os.path.abspath('next_purchase_stack_model.pkl')
-        clf_model_path = os.path.abspath('churn_model.pkl')
-        
-        print(f"Regression model path: {reg_model_path}")
-        print(f"Classification model path: {clf_model_path}")
-        
-        if not os.path.exists(reg_model_path):
-            raise FileNotFoundError(f"next_purchase_stack_model.pkl not found at {reg_model_path}")
-        if not os.path.exists(clf_model_path):
-            raise FileNotFoundError(f"churn_model.pkl not found at {clf_model_path}")
-        print("Model files found")
-        
-        print("Checking dependencies...")
-        try:
-            import joblib
-            print(f"joblib version: {joblib.__version__}")
-            import pandas as pd
-            print(f"pandas version: {pd.__version__}")
-            import numpy as np
-            print(f"numpy version: {np.__version__}")
-            import xgboost
-            print(f"xgboost version: {xgboost.__version__}")
-            import lightgbm
-            print(f"lightgbm version: {lightgbm.__version__}")
-            from sklearn.preprocessing import LabelEncoder
-            print(f"sklearn version: {sklearn.__version__}")
-            print("All dependencies available")
-        except ImportError as e:
-            raise ImportError(f"Missing dependency: {e}")
-        
-        print("Loading regression model...")
-        try:
-            reg_model = joblib.load(reg_model_path)
-            print(f"Regression model loaded: {type(reg_model)}")
-        except Exception as e:
-            print(f"Failed to load regression model: {e}")
-            print(f"Regression model error type: {type(e).__name__}")
-            raise e
-        
-        print("Loading classification model...")
-        try:
-            clf_model = joblib.load(clf_model_path)
-            print(f"Classification model loaded: {type(clf_model)}")
-        except Exception as e:
-            print(f"Failed to load classification model: {e}")
-            print(f"Classification model error type: {type(e).__name__}")
-            raise e
-        
-        # Test model functionality
-        print("Testing model functionality...")
-        test_data = pd.DataFrame({
-            'Frequency': [1], 'Monetary': [100.0], 'Avg_Order_Value': [100.0], 
-            'Total_Items_Sold': [1], 'Customer_Type': ['new'], 'Attribution': ['Direct']
-        })
-        test_clf_data = pd.DataFrame({
-            'Recency_Days': [10], 'Avg_Order_Value': [100.0], 
-            'Total_Items_Sold': [1], 'Attribution': ['Direct']
-        })
-        
-        # Test regression model
-        try:
-            reg_pred = reg_model.predict(test_data[['Frequency', 'Monetary', 'Avg_Order_Value', 'Total_Items_Sold', 'Customer_Type', 'Attribution']])
-            print(f"Regression model test prediction: {reg_pred[0]}")
-        except Exception as e:
-            print(f"Regression model test failed: {e}")
-            raise e
-        
-        # Test classification model
-        try:
-            clf_pred = clf_model.predict_proba(test_clf_data)[:, 1]
-            print(f"Classification model test prediction: {clf_pred[0]}")
-        except Exception as e:
-            print(f"Classification model test failed: {e}")
-            raise e
-        
-        print("All models loaded and tested successfully!")
-        print("=== MODEL LOADING COMPLETE ===")
-        return True
-        
-    except Exception as e:
-        print(f"=== MODEL LOADING FAILED ===")
-        print(f"Error loading models: {e}")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error details: {str(e)}")
-        print("Make sure you have installed all dependencies: pip install -r requirements.txt")
-        print("Check that model files are present in the container")
-        print("=== END DEBUG ===")
-        reg_model = None
-        clf_model = None
-        return False
-
-# Initialize models
-models_loaded = load_models()
+    print("Loading classification model...")
+    clf_model = joblib.load('churn_model.pkl')
+    print(f"✅ Classification model loaded: {type(clf_model)}")
+    
+    print("🎉 All models loaded successfully!")
+except Exception as e:
+    print(f"❌ Error loading models: {e}")
+    print("💡 Make sure you have installed all dependencies: pip install -r requirements.txt")
+    reg_model = None
+    clf_model = None
 
 # Initialize single label encoder (as shown in the guide)
 le = LabelEncoder()
@@ -181,16 +89,17 @@ def predict_customer_behavior(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     
     # Encode categorical variables using single encoder (as shown in guide)
-    df['Customer_Type'] = le.fit_transform(df['Customer_Type'])
-    df['Attribution'] = le.fit_transform(df['Attribution'])
+    df['Customer_Type'] = le.transform(df['Customer_Type'])
+    df['Attribution'] = le.transform(df['Attribution'])
     
     # Features for regression model (next purchase prediction) - exact from guide
     reg_features = ['Frequency', 'Monetary', 'Avg_Order_Value', 'Total_Items_Sold', 'Customer_Type', 'Attribution']
-    df['Pred_Next_Purchase_Days'] = reg_model.predict(df[reg_features])
+    X_reg = df[reg_features].values  # Convert to numpy array to avoid feature name warnings
+    df['Pred_Next_Purchase_Days'] = reg_model.predict(X_reg)
     
     # Features for classification model (churn prediction) - exact from guide
     clf_features = ['Recency_Days', 'Avg_Order_Value', 'Total_Items_Sold', 'Attribution']
-    X_clf_new = df[clf_features]
+    X_clf_new = df[clf_features].values  # Convert to numpy array to avoid feature name warnings
     df['Churn_Probability'] = clf_model.predict_proba(X_clf_new)[:, 1] * 100
     
     return df
@@ -200,89 +109,15 @@ async def root():
     """Health check endpoint"""
     return {"message": "AgriNova Customer Behavior Prediction API", "status": "healthy"}
 
-@app.get("/debug")
-async def debug_info():
-    """Debug endpoint with detailed system information"""
-    import os
-    import sys
-    
-    debug_info = {
-        "python_version": sys.version,
-        "working_directory": os.getcwd(),
-        "files_in_directory": os.listdir('.'),
-        "model_files_exist": {
-            "next_purchase_stack_model.pkl": os.path.exists(os.path.abspath('next_purchase_stack_model.pkl')),
-            "churn_model.pkl": os.path.exists(os.path.abspath('churn_model.pkl'))
-        },
-        "models_loaded": {
-            "reg_model": reg_model is not None,
-            "clf_model": clf_model is not None
-        },
-        "models_loaded_successfully": models_loaded
-    }
-    
-    # Try to get model types if loaded
-    if reg_model is not None:
-        debug_info["reg_model_type"] = str(type(reg_model))
-    if clf_model is not None:
-        debug_info["clf_model_type"] = str(type(clf_model))
-    
-    return debug_info
-
 @app.get("/health")
 async def health_check():
-    """Detailed health check with comprehensive status"""
-    import os
-    
-    # Check model files
-    model_files = {
-        "next_purchase_stack_model.pkl": os.path.exists(os.path.abspath('next_purchase_stack_model.pkl')),
-        "churn_model.pkl": os.path.exists(os.path.abspath('churn_model.pkl'))
-    }
-    
-    # Check model loading status
-    models_loaded = reg_model is not None and clf_model is not None
-    
-    # Check dependencies
-    dependencies = {}
-    try:
-        import joblib
-        dependencies["joblib"] = True
-    except ImportError:
-        dependencies["joblib"] = False
-    
-    try:
-        import xgboost
-        dependencies["xgboost"] = True
-    except ImportError:
-        dependencies["xgboost"] = False
-    
-    try:
-        import pandas
-        dependencies["pandas"] = True
-    except ImportError:
-        dependencies["pandas"] = False
-    
-    try:
-        import sklearn
-        dependencies["sklearn"] = True
-    except ImportError:
-        dependencies["sklearn"] = False
-    
-    try:
-        import lightgbm
-        dependencies["lightgbm"] = True
-    except ImportError:
-        dependencies["lightgbm"] = False
-    
+    """Detailed health check"""
+    model_status = "loaded" if reg_model is not None and clf_model is not None else "not loaded"
     return {
-        "status": "healthy" if models_loaded else "unhealthy",
-        "models_loaded": models_loaded,
-        "model_files": model_files,
-        "dependencies": dependencies,
+        "status": "healthy",
+        "models_loaded": model_status,
         "regression_model": type(reg_model).__name__ if reg_model else None,
-        "classification_model": type(clf_model).__name__ if clf_model else None,
-        "models_loaded_successfully": models_loaded
+        "classification_model": type(clf_model).__name__ if clf_model else None
     }
 
 @app.post("/predict", response_model=CustomerPrediction)
