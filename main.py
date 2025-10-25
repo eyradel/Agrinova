@@ -19,33 +19,62 @@ def load_models():
     global reg_model, clf_model
     
     try:
+        print("=== MODEL LOADING DEBUG ===")
         print("Checking model files...")
         import os
-        if not os.path.exists('next_purchase_stack_model.pkl'):
-            raise FileNotFoundError("next_purchase_stack_model.pkl not found")
-        if not os.path.exists('churn_model.pkl'):
-            raise FileNotFoundError("churn_model.pkl not found")
+        
+        # Check current directory
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Files in directory: {os.listdir('.')}")
+        
+        # Use absolute paths for better reliability
+        reg_model_path = os.path.abspath('next_purchase_stack_model.pkl')
+        clf_model_path = os.path.abspath('churn_model.pkl')
+        
+        print(f"Regression model path: {reg_model_path}")
+        print(f"Classification model path: {clf_model_path}")
+        
+        if not os.path.exists(reg_model_path):
+            raise FileNotFoundError(f"next_purchase_stack_model.pkl not found at {reg_model_path}")
+        if not os.path.exists(clf_model_path):
+            raise FileNotFoundError(f"churn_model.pkl not found at {clf_model_path}")
         print("Model files found")
         
         print("Checking dependencies...")
         try:
             import joblib
+            print(f"joblib version: {joblib.__version__}")
             import pandas as pd
+            print(f"pandas version: {pd.__version__}")
             import numpy as np
+            print(f"numpy version: {np.__version__}")
             import xgboost
+            print(f"xgboost version: {xgboost.__version__}")
             import lightgbm
+            print(f"lightgbm version: {lightgbm.__version__}")
             from sklearn.preprocessing import LabelEncoder
+            print(f"sklearn version: {sklearn.__version__}")
             print("All dependencies available")
         except ImportError as e:
             raise ImportError(f"Missing dependency: {e}")
         
         print("Loading regression model...")
-        reg_model = joblib.load('next_purchase_stack_model.pkl')
-        print(f"Regression model loaded: {type(reg_model)}")
+        try:
+            reg_model = joblib.load(reg_model_path)
+            print(f"Regression model loaded: {type(reg_model)}")
+        except Exception as e:
+            print(f"Failed to load regression model: {e}")
+            print(f"Regression model error type: {type(e).__name__}")
+            raise e
         
         print("Loading classification model...")
-        clf_model = joblib.load('churn_model.pkl')
-        print(f"Classification model loaded: {type(clf_model)}")
+        try:
+            clf_model = joblib.load(clf_model_path)
+            print(f"Classification model loaded: {type(clf_model)}")
+        except Exception as e:
+            print(f"Failed to load classification model: {e}")
+            print(f"Classification model error type: {type(e).__name__}")
+            raise e
         
         # Test model functionality
         print("Testing model functionality...")
@@ -59,21 +88,33 @@ def load_models():
         })
         
         # Test regression model
-        reg_pred = reg_model.predict(test_data[['Frequency', 'Monetary', 'Avg_Order_Value', 'Total_Items_Sold', 'Customer_Type', 'Attribution']])
-        print(f"Regression model test prediction: {reg_pred[0]}")
+        try:
+            reg_pred = reg_model.predict(test_data[['Frequency', 'Monetary', 'Avg_Order_Value', 'Total_Items_Sold', 'Customer_Type', 'Attribution']])
+            print(f"Regression model test prediction: {reg_pred[0]}")
+        except Exception as e:
+            print(f"Regression model test failed: {e}")
+            raise e
         
         # Test classification model
-        clf_pred = clf_model.predict_proba(test_clf_data)[:, 1]
-        print(f"Classification model test prediction: {clf_pred[0]}")
+        try:
+            clf_pred = clf_model.predict_proba(test_clf_data)[:, 1]
+            print(f"Classification model test prediction: {clf_pred[0]}")
+        except Exception as e:
+            print(f"Classification model test failed: {e}")
+            raise e
         
         print("All models loaded and tested successfully!")
+        print("=== MODEL LOADING COMPLETE ===")
         return True
         
     except Exception as e:
+        print(f"=== MODEL LOADING FAILED ===")
         print(f"Error loading models: {e}")
         print(f"Error type: {type(e).__name__}")
+        print(f"Error details: {str(e)}")
         print("Make sure you have installed all dependencies: pip install -r requirements.txt")
         print("Check that model files are present in the container")
+        print("=== END DEBUG ===")
         reg_model = None
         clf_model = None
         return False
@@ -159,6 +200,35 @@ async def root():
     """Health check endpoint"""
     return {"message": "AgriNova Customer Behavior Prediction API", "status": "healthy"}
 
+@app.get("/debug")
+async def debug_info():
+    """Debug endpoint with detailed system information"""
+    import os
+    import sys
+    
+    debug_info = {
+        "python_version": sys.version,
+        "working_directory": os.getcwd(),
+        "files_in_directory": os.listdir('.'),
+        "model_files_exist": {
+            "next_purchase_stack_model.pkl": os.path.exists(os.path.abspath('next_purchase_stack_model.pkl')),
+            "churn_model.pkl": os.path.exists(os.path.abspath('churn_model.pkl'))
+        },
+        "models_loaded": {
+            "reg_model": reg_model is not None,
+            "clf_model": clf_model is not None
+        },
+        "models_loaded_successfully": models_loaded
+    }
+    
+    # Try to get model types if loaded
+    if reg_model is not None:
+        debug_info["reg_model_type"] = str(type(reg_model))
+    if clf_model is not None:
+        debug_info["clf_model_type"] = str(type(clf_model))
+    
+    return debug_info
+
 @app.get("/health")
 async def health_check():
     """Detailed health check with comprehensive status"""
@@ -166,8 +236,8 @@ async def health_check():
     
     # Check model files
     model_files = {
-        "next_purchase_stack_model.pkl": os.path.exists('next_purchase_stack_model.pkl'),
-        "churn_model.pkl": os.path.exists('churn_model.pkl')
+        "next_purchase_stack_model.pkl": os.path.exists(os.path.abspath('next_purchase_stack_model.pkl')),
+        "churn_model.pkl": os.path.exists(os.path.abspath('churn_model.pkl'))
     }
     
     # Check model loading status
