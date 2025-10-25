@@ -38,7 +38,24 @@ gcloud services enable containerregistry.googleapis.com
 
 # Build and push the Docker image
 echo "🐳 Building Docker image..."
-docker build -t $IMAGE_NAME .
+docker build -t $IMAGE_NAME . --no-cache
+
+# Test the image locally first
+echo "🧪 Testing image locally..."
+docker run --rm -d --name agrinova-test -p 8080:8080 $IMAGE_NAME
+sleep 10
+
+# Test health endpoint
+echo "🔍 Testing health endpoint..."
+if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+    echo "✅ Local test passed"
+    docker stop agrinova-test
+else
+    echo "❌ Local test failed"
+    docker logs agrinova-test
+    docker stop agrinova-test
+    exit 1
+fi
 
 echo "📤 Pushing image to Google Container Registry..."
 docker push $IMAGE_NAME

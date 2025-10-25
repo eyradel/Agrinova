@@ -4,10 +4,12 @@ FROM python:3.10-slim
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
 
-# Install system dependencies
+# Install system dependencies including curl for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -16,12 +18,17 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt ./
 
-# Install Python dependencies
+# Install Python dependencies with verbose output
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip list
 
 # Copy application code
 COPY . .
+
+# Verify model files exist
+RUN ls -la *.pkl && \
+    python -c "import joblib; print('Testing model loading...'); reg_model = joblib.load('next_purchase_stack_model.pkl'); print('Regression model loaded:', type(reg_model)); clf_model = joblib.load('churn_model.pkl'); print('Classification model loaded:', type(clf_model))"
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app && \
