@@ -18,9 +18,15 @@ try:
     import os
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')}")
+    print(f"Python path: {os.environ.get('PYTHONPATH', 'Not set')}")
+    
+    # Check if we're in a cloud environment
+    is_cloud = os.environ.get('K_SERVICE') or os.environ.get('GAE_SERVICE') or os.environ.get('CLOUD_RUN_SERVICE')
+    print(f"Cloud environment detected: {bool(is_cloud)}")
     
     print("Loading regression model...")
     if os.path.exists('next_purchase_stack_model.pkl'):
+        print(f"Model file size: {os.path.getsize('next_purchase_stack_model.pkl')} bytes")
         reg_model = joblib.load('next_purchase_stack_model.pkl')
         print(f"✅ Regression model loaded: {type(reg_model)}")
     else:
@@ -29,6 +35,7 @@ try:
     
     print("Loading classification model...")
     if os.path.exists('churn_model.pkl'):
+        print(f"Model file size: {os.path.getsize('churn_model.pkl')} bytes")
         clf_model = joblib.load('churn_model.pkl')
         print(f"✅ Classification model loaded: {type(clf_model)}")
     else:
@@ -144,12 +151,31 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Detailed health check"""
+    import os
+    
     model_status = "loaded" if reg_model is not None and clf_model is not None else "not loaded"
+    
+    # Cloud-specific debugging information
+    cloud_info = {
+        "cloud_environment": bool(os.environ.get('K_SERVICE') or os.environ.get('GAE_SERVICE') or os.environ.get('CLOUD_RUN_SERVICE')),
+        "working_directory": os.getcwd(),
+        "model_files_exist": {
+            "regression_model": os.path.exists('next_purchase_stack_model.pkl'),
+            "classification_model": os.path.exists('churn_model.pkl')
+        }
+    }
+    
+    if os.path.exists('next_purchase_stack_model.pkl'):
+        cloud_info["regression_model_size"] = os.path.getsize('next_purchase_stack_model.pkl')
+    if os.path.exists('churn_model.pkl'):
+        cloud_info["classification_model_size"] = os.path.getsize('churn_model.pkl')
+    
     return {
         "status": "healthy",
         "models_loaded": model_status,
         "regression_model": type(reg_model).__name__ if reg_model else None,
-        "classification_model": type(clf_model).__name__ if clf_model else None
+        "classification_model": type(clf_model).__name__ if clf_model else None,
+        "cloud_debug": cloud_info
     }
 
 @app.post("/predict", response_model=CustomerPrediction)
