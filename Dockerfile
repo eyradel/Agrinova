@@ -19,7 +19,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip list | grep -E "(xgboost|scikit-learn|pandas|numpy|joblib)"
+    pip list | grep -E "(xgboost|lightgbm|scikit-learn|pandas|numpy|joblib)"
 
 # Production stage
 FROM python:3.10-slim
