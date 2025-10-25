@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -14,8 +17,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip list | grep -E "(xgboost|scikit-learn|pandas|numpy|joblib)"
 
 # Production stage
 FROM python:3.10-slim
@@ -29,6 +33,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
+    libgfortran5 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -52,7 +58,13 @@ RUN ls -la *.pkl && \
     echo "churn_model.pkl size: $(wc -c < churn_model.pkl) bytes" && \
     echo "next_purchase_stack_model.pkl size: $(wc -c < next_purchase_stack_model.pkl) bytes"
 
-# Verify model files and dependencies
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash --uid 1000 app
+
+# Change ownership of all files to app user
+RUN chown -R app:app /app
+
+# Verify model files and dependencies as app user
 RUN python -c "import joblib; print('Testing model loading...'); \
     print('Loading regression model...'); \
     reg_model = joblib.load('next_purchase_stack_model.pkl'); \
@@ -62,10 +74,6 @@ RUN python -c "import joblib; print('Testing model loading...'); \
     print('Classification model loaded:', type(clf_model)); \
     print('All models loaded successfully!')" || \
     (echo "Model loading test failed, but continuing..." && exit 0)
-
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash --uid 1000 app && \
-    chown -R app:app /app
 
 # Switch to non-root user
 USER app
